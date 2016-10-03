@@ -6,7 +6,7 @@
             "request": "launch",
             "program": "/home/emol/cs/comp310/test",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
             "environment": [],
             "externalConsole": true,
