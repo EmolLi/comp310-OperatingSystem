@@ -12,7 +12,7 @@ int main()
   char *token;
 
   token = strsep(&my_string, "h");
-  printf("%s\n", my_string);;
+  printf("sdfsd");
   printf("%s\n",token);
 
   return 0;
