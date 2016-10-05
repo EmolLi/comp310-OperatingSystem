@@ -4,7 +4,7 @@
             "name": "C++ Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/emol/cs/comp310/test",
+            "program": "${workspaceRoot}/test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",

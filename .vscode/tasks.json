@@ -4,6 +4,7 @@
     "version": "0.1.0",
     "command": "gcc",
     "isShellCommand": true,
-    "args": ["-o", "test", "/home/emol/cs/comp310/assign1/test.c"],
+    "args": ["-o", "test", "/home/emol/cs/comp310/assign1/simpleShell.c"],
     "showOutput": "always"
+
 }
