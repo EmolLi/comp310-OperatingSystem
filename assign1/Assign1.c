@@ -13,7 +13,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-
+int getcmd(char *prompt, char *args[], int *background);
+int parseCommand(char *line, char *args[]);
 
 
 /*
@@ -39,18 +40,47 @@ int getcmd(char *prompt, char *args[], int *background){
 	int cnt;
 
 	//prints prompt
-	printf(prompt);
+	printf("%s", prompt);
 
 	//read input
 	read = getline(&line, &len, stdin);		//getline does the memory allocation for line
 
-	if (read == -1 || read == 1) return 0;	//if there is no input (normally there will be '\n' so at least one character), return 0
+	if (read == -1) exit(-1);		//check if the user want to exit (^D)
+	if (read == 1) return 0;	//if there is no input (normally there will be '\n' so at least one character), return 0
 	else{
 		cnt = parseCommand(line, args);
 		return cnt;
 	}
 
 }
+
+
+
+/**
+ * input:
+ * 		char *line: the input command
+ * output:
+ * 		int: 1 -- the user want to exits
+ * 			 0 -- the user does not want to exits
+ * description:
+ * 		wantToExit checks if there is ^F in the input command
+ *
+ */
+/*
+int wantToExit(char *line){
+	int i;
+	for (i = 0; i<strlen(line); i++){	//walk through the line to see if there is '^D'
+		if(*(line+i) == 4){				//'^D' = 4
+			return 1;
+		}
+	}
+	return 0;
+}
+*/
+
+
+
+
 
 
 /**
@@ -62,6 +92,7 @@ int getcmd(char *prompt, char *args[], int *background){
  * 	description:
  * 		parseCommand parses the command, splits it into words, and stores the pointers to each word to args
  */
+
  int parseCommand(char *line, char *args[]){
 	char *token;
 
@@ -69,7 +100,6 @@ int getcmd(char *prompt, char *args[], int *background){
 	while((token = strsep(&line, " \t\n"))!=NULL){
 		args[cnt++] = token;
 	}
-	printf(args[cnt-1]);
 	return cnt-1;
 }
 
@@ -82,7 +112,7 @@ int main(void){
 	while(1){		//while 1 loop
 		bg = 0;
 		int cnt =getcmd("\n>> ", args, &bg);
-
+		if (cnt==-1) exit(-1);
 		printf("%d", cnt);
 	}
 
