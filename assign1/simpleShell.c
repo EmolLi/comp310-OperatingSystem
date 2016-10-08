@@ -83,7 +83,7 @@ int main(void){
 			waitpid(pid, &status, 0);
 			}
 			else{
-				add_jobg(pid, args);
+	//			add_jobg(pid, args);
 			}
 			}
 	}
