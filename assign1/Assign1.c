@@ -98,20 +98,31 @@ int getHistoryIndex(char* args[]){
  * 		int* currCmd: current commend number
  * 		int index: index of the command user want to execute
  * output:
- * 		int: 1-- if command is not found
- * 			 0-- SUCCESS
+ * 		int: 0-- if command is not found
+ * 			 1-- SUCCESS
  * description:
  * 		this method get nth command in the history buffer and execute it, and add the command to the next entry in history buffer
  *
  */
 int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index){
+	//invalid index
+	if (index<(*currCmd)-10 || index>=*currCmd){
+		printf("No command found in history.");
+		return 0;
+	}
+
 	//print the command out
+	index = index % 10;
 	int i = 0;
 	while (buf[index][i]!=NULL){
 		printf("%s ", buf[index][i++]);
 	}
-	return 0;
 	//execute the history command
+
+	//add it history
+	addToHistory(buf, currCmd, buf[index]);
+	return 1;
+
 
 
 }
@@ -288,7 +299,10 @@ int main(void){
 	while(1){		//while 1 loop
 		bg = 0;
 		int cnt =getcmd(hist, "\n>> ", args, &bg);
-		if (cnt==-1) exit(-1);
+		if (cnt==-1) {
+			printf("no command");
+			exit(-1);
+		}
 		//execCommand(args, bg);
 	}
 
