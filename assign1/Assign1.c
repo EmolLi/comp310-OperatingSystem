@@ -289,7 +289,7 @@ int main(void){
 		bg = 0;
 		int cnt =getcmd(hist, "\n>> ", args, &bg);
 		if (cnt==-1) exit(-1);
-		execCommand(args, bg);
+		//execCommand(args, bg);
 	}
 
 }
