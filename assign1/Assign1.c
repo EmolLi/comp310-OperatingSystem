@@ -15,11 +15,120 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-int getcmd(char *prompt, char *args[], int *background);
+
+#define HISTORY_SIZE 10
+#define ARGS_ARRAY_SIZE 20
+#define JOBS_ARRAY_SIZE 20
+
+typedef struct history_t{
+	char* buffer[HISTORY_SIZE][ARGS_ARRAY_SIZE];
+	int currentCmd;
+} History;
+
+typedef struct joblist_t{
+	char jobs[JOBS_ARRAY_SIZE][ARGS_ARRAY_SIZE];
+	pid_t pids[JOBS_ARRAY_SIZE];
+} JobList;
+
+
+
+
+int getcmd(History *hist, char *prompt, char *args[], int *background);
 int parseCommand(char *line, char *args[]);
 int ifBackground(char *line, int *background);
 int execCommand(char *args[], int background);
-int addJob(pid_t pid);
+int addJob(pid_t pid);//haven't implement this one
+int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]);
+int getHistoryIndex(char* args[]);
+int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index);
+int tenpower(int i);
+
+/**
+ * input:
+ * 		int i: the power of ten
+ * output:
+ * 		int: the result
+ * description:
+ * 		this calculate i power 10;
+ */
+int tenpower(int i){
+	int result = 1;
+	while (i>0){
+		result *= 10;
+		i--;
+	}
+	return result;
+}
+
+
+
+/**
+ * input:
+ * 		char* args[]: the command args
+ * output:
+ * 		int: the index of the history command
+ * 			 -1 -- user doesn't want to execute a history command
+ * description:
+ * 		this method detects whether the user want to execute a history command and return the index of the history command
+ *
+ */
+
+
+int getHistoryIndex(char* args[]){
+	char* c = args[0];
+
+	//user doesn't want to execute a history command
+	if ((*c)!=33) return -1;
+	//user want to execute a history command, compute the index of the command
+	int index = 0;
+	c++;
+	int i = strlen(c)-1;
+	while ((*c)!='\0'){
+		index += ((*c)-'0')*tenpower(i--);
+		c++;
+	}
+	return index-1;
+}
+
+
+
+/**
+ * input:
+ * 		char* buf[][ARGS_ARRAY_SIZE]: buffer of the History
+ * 		int* currCmd: current commend number
+ * 		int index: index of the command user want to execute
+ * output:
+ * 		int: 1-- if command is not found
+ * 			 0-- SUCCESS
+ * description:
+ * 		this method get nth command in the history buffer and execute it, and add the command to the next entry in history buffer
+ *
+ */
+//int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index){
+
+//}
+
+/**
+ * input:
+ * 		History hist: the history of commands
+ * 		char *args[]: the array of pointers that points to words of the current command
+ * output:
+ * 		int: the index of the current command
+ * description:
+ * 		this method add the current command into history record
+ */
+int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]){
+	int i;
+	int index = (*currCmd) % 10;
+	for(i = 0; i<ARGS_ARRAY_SIZE; i++){
+		buf[index][i] = args[i];
+	}
+
+	(*currCmd)++;
+	return *currCmd;
+}
+
+
 
 /*
 	input:
@@ -35,13 +144,14 @@ int addJob(pid_t pid);
 		3.getcmd reads the input,parse it
 		4.getcmd loads the command to args[]
 */
-int getcmd(char *prompt, char *args[], int *background){
+int getcmd(History *hist, char *prompt, char *args[], int *background){
 
 
 	size_t len = 0;		//the size in bytes of the buffer to read the line
 	ssize_t read;		//the number of character read
 	char *line = NULL;	//the place to store the input command
 	int cnt;
+	int histIndex;
 
 	//prints prompt
 	printf("%s", prompt);
@@ -54,6 +164,11 @@ int getcmd(char *prompt, char *args[], int *background){
 	else{
 		ifBackground(line, background);
 		cnt = parseCommand(line, args);
+		histIndex = getHistoryIndex(args);
+		if (histIndex == -1){
+			addToHistory((hist->buffer), &(hist->currentCmd),args);
+		}
+		else printf("%d", histIndex);
 		return cnt;
 	}
 
@@ -158,9 +273,12 @@ int execCommand(char* args[], int background){
 int main(void){
 	char *args[20];		//args is the place to hold the command
 	int bg;				//if child runs in background
+	History *hist = (History*) malloc(sizeof(History));
+	//JobList *jobList = (JobList*) malloc(sizeof(JobList));
+
 	while(1){		//while 1 loop
 		bg = 0;
-		int cnt =getcmd("\n>> ", args, &bg);
+		int cnt =getcmd(hist, "\n>> ", args, &bg);
 		if (cnt==-1) exit(-1);
 		args[cnt]=NULL;
 		execCommand(args, bg);
