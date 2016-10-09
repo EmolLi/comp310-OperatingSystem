@@ -104,9 +104,17 @@ int getHistoryIndex(char* args[]){
  * 		this method get nth command in the history buffer and execute it, and add the command to the next entry in history buffer
  *
  */
-//int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index){
+int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index){
+	//print the command out
+	int i = 0;
+	while (buf[index][i]!=NULL){
+		printf("%s ", buf[index][i++]);
+	}
+	return 0;
+	//execute the history command
 
-//}
+
+}
 
 /**
  * input:
@@ -168,7 +176,7 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
 		if (histIndex == -1){
 			addToHistory((hist->buffer), &(hist->currentCmd),args);
 		}
-		else printf("%d", histIndex);
+		else execHistoryItem(hist->buffer, &(hist->currentCmd), histIndex);
 		return cnt;
 	}
 
@@ -204,6 +212,7 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
 		if (strlen(token) > 0) args[cnt++] = token;	//so this avoid having a bunch of spaces that looks like a lot of command
 	}
 
+	args[cnt]=NULL;
 	return cnt;
 }
 
@@ -280,7 +289,6 @@ int main(void){
 		bg = 0;
 		int cnt =getcmd(hist, "\n>> ", args, &bg);
 		if (cnt==-1) exit(-1);
-		args[cnt]=NULL;
 		execCommand(args, bg);
 	}
 
