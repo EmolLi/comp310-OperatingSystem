@@ -41,6 +41,7 @@ int getHistoryIndex(char* args[]);
 int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* args[]);
 int tenpower(int i);	//this is a helper method to calculate the power of ten
 int checkExit(char *args[]);
+int checkpwd(char *args[]);
 
 
 //===========================Other Built in commands==============================
@@ -48,9 +49,34 @@ int checkExit(char *args[]);
  * input:
  * 		char* args[]: the array of pointers to the words of input command
  * output:
+ * 		int : 1 -- the user enters pwd
+ * 			  0 -- the user doesn't enter pwd
+ * description:
+ * 		this method checks if the user call pwd, if does, show the present working directory
+ */
+
+int checkpwd(char* args[]){
+	char target[] = "pwd";
+	if (strcmp(target, args[0]) == 0){
+		char *buf = NULL;
+		size_t len = 0;
+		printf("%s", getcwd(buf, len));
+		free(buf);
+		return 1;
+	}
+	else return 0;
+}
+
+
+
+/**
+ * input:
+ * 		char* args[]: the array of pointers to the words of input command
+ * output:
  * 		int : 1 -- the user wants to exit
  * 			  0 -- the user doesn't want to exit
  * description:
+ * 		this method checks if the user wants to exit, and if he wants, exit the shell
  */
 int checkExit(char* args[]){
 	char target[] = "exit";
@@ -215,6 +241,7 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
 
 		//built in commands
 		checkExit(args);
+		checkpwd(args);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
