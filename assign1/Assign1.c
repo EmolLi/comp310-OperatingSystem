@@ -40,7 +40,7 @@ int execCommand(char *args[], int background);
 int addJob(pid_t pid);//haven't implement this one
 int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]);
 int getHistoryIndex(char* args[]);
-int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index);
+int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* args[]);
 int tenpower(int i);
 
 /**
@@ -97,6 +97,7 @@ int getHistoryIndex(char* args[]){
  * 		char* buf[][ARGS_ARRAY_SIZE]: buffer of the History
  * 		int* currCmd: current commend number
  * 		int index: index of the command user want to execute
+ * 		char* args[]: the current command pointers
  * output:
  * 		int: 0-- if command is not found
  * 			 1-- SUCCESS
@@ -104,20 +105,29 @@ int getHistoryIndex(char* args[]){
  * 		this method get nth command in the history buffer and execute it, and add the command to the next entry in history buffer
  *
  */
-int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index){
+int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* args[]){
 	//invalid index
 	if (index<(*currCmd)-10 || index>=*currCmd){
 		printf("No command found in history.");
 		return 0;
 	}
 
-	//print the command out
 	index = index % 10;
 	int i = 0;
+
+	//load the command to current command for execution
 	while (buf[index][i]!=NULL){
-		printf("%s ", buf[index][i++]);
+		args[i] = buf[index][i++];
 	}
-	//execute the history command
+	//add null;
+	args[i] = buf[index][i];
+
+
+	//print the command out
+	i=0;
+	while (args[i]!=NULL){
+		printf("%s ", args[i++]);
+	}
 
 	//add it history
 	addToHistory(buf, currCmd, buf[index]);
@@ -187,7 +197,7 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
 		if (histIndex == -1){
 			addToHistory((hist->buffer), &(hist->currentCmd),args);
 		}
-		else execHistoryItem(hist->buffer, &(hist->currentCmd), histIndex);
+		else execHistoryItem(hist->buffer, &(hist->currentCmd), histIndex, args);
 		return cnt;
 	}
 
@@ -303,7 +313,7 @@ int main(void){
 			printf("no command");
 			exit(-1);
 		}
-		//execCommand(args, bg);
+		execCommand(args, bg);
 	}
 
 }
