@@ -1,10 +1,8 @@
 /*
  ============================================================================
  Name        : Assign1.c
- Author      : emol
- Version     :
- Copyright   : Your copyright efhehnotice
- Description : Hello World in C, Ansi-style
+ Author      : Duan Li 260683698
+ Description : Simple shell
  ============================================================================
  */
 // clang assign1.c -g
@@ -41,8 +39,32 @@ int addJob(pid_t pid);//haven't implement this one
 int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]);
 int getHistoryIndex(char* args[]);
 int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* args[]);
-int tenpower(int i);
+int tenpower(int i);	//this is a helper method to calculate the power of ten
+int checkExit(char *args[]);
 
+
+//===========================Other Built in commands==============================
+/**
+ * input:
+ * 		char* args[]: the array of pointers to the words of input command
+ * output:
+ * 		int : 1 -- the user wants to exit
+ * 			  0 -- the user doesn't want to exit
+ * description:
+ */
+int checkExit(char* args[]){
+	char target[] = "exit";
+	if (strcmp(target, args[0]) == 0){
+		exit(1);
+	}
+	else return 0;
+};
+
+
+
+
+
+//===========================History Part==========================================
 /**
  * input:
  * 		int i: the power of ten
@@ -59,7 +81,6 @@ int tenpower(int i){
 	}
 	return result;
 }
-
 
 
 /**
@@ -90,8 +111,6 @@ int getHistoryIndex(char* args[]){
 	return index-1;
 }
 
-
-
 /**
  * input:
  * 		char* buf[][ARGS_ARRAY_SIZE]: buffer of the History
@@ -102,7 +121,7 @@ int getHistoryIndex(char* args[]){
  * 		int: 0-- if command is not found
  * 			 1-- SUCCESS
  * description:
- * 		this method get nth command in the history buffer and execute it, and add the command to the next entry in history buffer
+ * 		this method gets nth command in the history buffer and loads it to the current argument (args) for execution (it doesn't execute the command), and add the command to the next entry in history buffer
  *
  */
 int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* args[]){
@@ -157,7 +176,7 @@ int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]){
 	return *currCmd;
 }
 
-
+//===================================================================================
 
 /*
 	input:
@@ -193,11 +212,16 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
 	else{
 		ifBackground(line, background);
 		cnt = parseCommand(line, args);
+
+		//built in commands
+		checkExit(args);
+
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
 			addToHistory((hist->buffer), &(hist->currentCmd),args);
 		}
 		else execHistoryItem(hist->buffer, &(hist->currentCmd), histIndex, args);
+
 		return cnt;
 	}
 
