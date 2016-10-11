@@ -24,18 +24,19 @@ typedef struct history_t{
 } History;
 
 typedef struct joblist_t{
-	char jobs[JOBS_ARRAY_SIZE][ARGS_ARRAY_SIZE];
+	char* jobs[JOBS_ARRAY_SIZE][ARGS_ARRAY_SIZE];
 	pid_t pids[JOBS_ARRAY_SIZE];
+	int jobAmount;
 } JobList;
 
 
 
 
-int getcmd(History *hist, char *prompt, char *args[], int *background);
+int getcmd(History *hist, char *prompt, char *args[], int *background, int* builtInCmd);
 int parseCommand(char *line, char *args[]);
 int ifBackground(char *line, int *background);
-int execCommand(char *args[], int background);
-int addJob(pid_t pid);//haven't implement this one
+int execCommand(char *args[], int background, JobList* jobList);
+int addJob(char* args[], pid_t pid, char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[JOBS_ARRAY_SIZE], int* jobAmount);
 int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]);
 int getHistoryIndex(char* args[]);
 int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* args[]);
@@ -173,6 +174,10 @@ int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* 
 	while (args[i]!=NULL){
 		printf("%s ", args[i++]);
 	}
+	//WHY print after the execution of command????Why if I put a puts here, it works???
+	puts("\n");
+
+	//puts("HEY");
 
 	//add it history
 	addToHistory(buf, currCmd, buf[index]);
@@ -218,7 +223,7 @@ int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]){
 		3.getcmd reads the input,parse it
 		4.getcmd loads the command to args[]
 */
-int getcmd(History *hist, char *prompt, char *args[], int *background){
+int getcmd(History *hist, char *prompt, char *args[], int *background, int* builtInCmd){
 
 
 	size_t len = 0;		//the size in bytes of the buffer to read the line
@@ -241,13 +246,14 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
 
 		//built in commands
 		checkExit(args);
-		checkpwd(args);
+		*builtInCmd+=checkpwd(args);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
 			addToHistory((hist->buffer), &(hist->currentCmd),args);
 		}
 		else execHistoryItem(hist->buffer, &(hist->currentCmd), histIndex, args);
+
 
 		return cnt;
 	}
@@ -311,9 +317,29 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
 
 
 
+/**
+ * input :
+ * 		pid_t pid : the pid of the job
+ * 		char* jobs[][ARGS_ARRAY_SIZE]: the pointers to the jobs args.
+ * 		pid_t pids[JOBS_ARRAY_SIZE]: the pids of the jobs
+ * 		int* currJob: the index of the current job
+ * 		char* args[]: the current command
+ * output:
+ * 		int: the index of the next job
+ * description:
+ * 		This method adds job into jobList.
+ */
+ int addJob(char* args[], pid_t pid, char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[JOBS_ARRAY_SIZE], int* currJob){
+	 int index = (*currJob)%20;
+	 int i;
+	 pids[index] = pid;
 
- int addJob(pid_t pid){
-	 return 0;
+	 for(i = 0; i<ARGS_ARRAY_SIZE; i++){
+		jobs[index][i] = args[i];
+	 }
+
+	 (*currJob)++;
+	 return *currJob;
  }
 
 
@@ -321,13 +347,14 @@ int getcmd(History *hist, char *prompt, char *args[], int *background){
  * input :
  * 			char *args[] : the command
  * 			int *background : whether the new process should run in background
+ * 			JobList* jobList: the list of jobs that runs in background
  * output :
  * 			int : 1 -- SUCCESS
  * 				  0 -- FAILURE
  * description:
  * 			execCommand fork a child process to run the command.
  */
-int execCommand(char* args[], int background){
+int execCommand(char* args[], int background, JobList* jobList){
 	//fork a child
 	pid_t pid =fork();
 
@@ -343,7 +370,7 @@ int execCommand(char* args[], int background){
 		}
 		else{
 			//run in background
-			addJob(pid);
+			addJob(args, pid, jobList->jobs, jobList->pids, &(jobList->jobAmount));
 		}
 
 	}
@@ -354,17 +381,19 @@ int execCommand(char* args[], int background){
 int main(void){
 	char *args[20];		//args is the place to hold the command
 	int bg;				//if child runs in background
+	int builtInCmd;
 	History *hist = (History*) malloc(sizeof(History));
-	//JobList *jobList = (JobList*) malloc(sizeof(JobList));
+	JobList *jobList = (JobList*) malloc(sizeof(JobList));
 
 	while(1){		//while 1 loop
 		bg = 0;
-		int cnt =getcmd(hist, "\n>> ", args, &bg);
+		builtInCmd = 0;
+		int cnt =getcmd(hist, "\n>> ", args, &bg, &builtInCmd);
 		if (cnt==-1) {
 			printf("no command");
 			exit(-1);
 		}
-		execCommand(args, bg);
+		if (builtInCmd == 0) execCommand(args, bg, jobList);
 	}
 
 }
