@@ -45,9 +45,58 @@ int checkExit(char *args[]);
 int checkpwd(char *args[]);
 int checkJobs(char *args[], JobList* jobList);
 void showJobs(char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[], int currJob);
-
+int checkfg(char *args[], JobList* jobList);
+int moveJobfg(int jobNum, int currJob, pid_t pids[]);
+int strToInt(char *str);
 
 //===========================Other Built in commands==============================
+/**
+ * input:
+ * 		int jobNum: the # of job that the user wants to move foreground
+ * 		int currJob: the # of current job
+ * 		pid_t pids[]: the array of pid of jobs
+ * output:
+ * 		int : 1 -- SUCCESS
+ * 			  0 -- FAILURE
+ * description:
+ * 		this method moves job #jobNum forground
+ */
+int moveJobfg(int jobNum, int currJob, pid_t pids[]){
+	if (jobNum >= currJob || jobNum<currJob-20){
+		printf("Invalid the job ID.");
+		return 0;
+	}
+	else{
+		int index = jobNum %20;
+		int pid = pids[index];
+		int status;
+		waitpid(pid, &status, 0);
+		return 1;
+	}
+}
+
+
+/**
+ * input:
+ * 		char *args[]: the array of pointers to the words of input command
+ * output:
+ * 		int : 1 -- the user enters fg
+ * 			  0 -- the user doesn't enter fg
+ * description:
+ * 		the method checks if the user want to move a job forground, reads the job number, and move it to forground.
+ *
+ */
+int checkfg(char *args[], JobList* jobList){
+	char target[] = "fg";
+
+	if (strcmp(target, args[0]) == 0){
+		int jobNum = strToInt(args[1]) + 1;
+		moveJobfg(jobNum, jobList->currJob, jobList->pids);
+		return 1;
+	}
+	else return 0;
+}
+
 /**
  * input:
  * 		char *args[]: the array of pointers to the words of input command
@@ -157,6 +206,23 @@ int tenpower(int i){
 	return result;
 }
 
+/**
+ * input:
+ * 		char *str: the input number in string format
+ * output:
+ * 		int: the converted result
+ * description:
+ * 		this method convert a number in string format to int.
+ */
+int strToInt(char *str){
+	int index = 0;
+	int i = strlen(str)-1;
+	while ((*str)!='\0'){
+		index += ((*str)-'0')*tenpower(i--);
+		str++;
+	}
+	return index-1;
+}
 
 /**
  * input:
@@ -176,14 +242,8 @@ int getHistoryIndex(char* args[]){
 	//user doesn't want to execute a history command
 	if ((*c)!=33) return -1;
 	//user want to execute a history command, compute the index of the command
-	int index = 0;
 	c++;
-	int i = strlen(c)-1;
-	while ((*c)!='\0'){
-		index += ((*c)-'0')*tenpower(i--);
-		c++;
-	}
-	return index-1;
+	return strToInt(c);
 }
 
 /**
@@ -296,6 +356,7 @@ int getcmd(History *hist, JobList *jobList, char *prompt, char *args[], int *bac
 		checkExit(args);
 		*builtInCmd+=checkpwd(args);
 		*builtInCmd+=checkJobs(args, jobList);
+		*builtInCmd+=checkfg(args, jobList);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
