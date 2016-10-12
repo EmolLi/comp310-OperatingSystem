@@ -11,6 +11,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 
 
@@ -50,6 +52,71 @@ int checkfg(char *args[], JobList* jobList);
 int moveJobfg(int jobNum, int currJob, pid_t pids[]);
 int strToInt(char *str);	//this is helper method to convert str to int
 int checkCd(char *args[]);
+int checkOutRedirection(char *args[]);
+void redirectOutput(char* args[], int symbol);
+
+
+
+//============================Output Redirection================================
+
+/**
+ * input:
+ * 		char *args[]: the array of pointers to the words of input command
+ * output:
+ * 		int: the index of '>'
+ * 			 -1 -- There is no '>'
+ * description:
+ * 		this method checks if the user want to redirect the output, if does, return the index of '>'.
+ */
+int checkOutRedirection(char *args[]){
+	char target[] = ">";
+	int i = 0;
+
+	while(args[i] != NULL){
+		if (strcmp(target, args[i]) == 0) {
+			redirectOutput(args, i);
+			return i;
+		}
+		i++;
+	}
+	return -1;
+}
+
+/**
+ * input:
+ * 		char *args[]: the array of pointers to the words of input command
+ * 		int symbol: the index of the symbol '>' in args
+ * description:
+ * 		this method redirect the output
+ */
+void redirectOutput(char* args[], int symbol){
+	char* outName = args[symbol+1];
+
+	if (strlen(outName)<=0){
+		printf("Output name unspecified.");
+		return;
+	}
+
+	close(2);
+	int fd = open(outName, O_RDWR | O_CREAT);
+	//printf("%d", fd);
+	return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //===========================Other Built in commands==============================
 
@@ -70,7 +137,6 @@ int checkCd(char *args[]){
 		char *path;		//the path user enter, may be absolute or relative
 		char *finalPath;//the final path
 		char bs = '/';
-		finalPath = (char *)malloc(200);
 
 		path = args[1];
 		if ((*path)=='/'){
@@ -79,7 +145,7 @@ int checkCd(char *args[]){
 		}
 		else{
 			//path is relative
-
+			finalPath = (char *)malloc(200);
 			char *buf = NULL;
 			size_t len = 0;
 			strcpy(finalPath, getcwd(buf, len));
@@ -243,7 +309,7 @@ int checkExit(char* args[]){
 		exit(1);
 	}
 	else return 0;
-};
+}
 
 
 
@@ -419,6 +485,8 @@ int getcmd(History *hist, JobList *jobList, char *prompt, char *args[], int *bac
 		*builtInCmd+=checkJobs(args, jobList);
 		*builtInCmd+=checkfg(args, jobList);
 		*builtInCmd+=checkCd(args);
+
+		checkOutRedirection(args);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
