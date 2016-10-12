@@ -43,13 +43,65 @@ int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* 
 int tenpower(int i);	//this is a helper method to calculate the power of ten
 int checkExit(char *args[]);
 int checkpwd(char *args[]);
+void showPwd();
 int checkJobs(char *args[], JobList* jobList);
 void showJobs(char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[], int currJob);
 int checkfg(char *args[], JobList* jobList);
 int moveJobfg(int jobNum, int currJob, pid_t pids[]);
-int strToInt(char *str);
+int strToInt(char *str);	//this is helper method to convert str to int
+int checkCd(char *args[]);
 
 //===========================Other Built in commands==============================
+
+/**
+ * input:
+ * 		char* args[]: the array of pointers to the words of input command
+ * output:
+ * 		int : 1 -- the user wants to change directory
+ * 			  0 -- the user doesn't want to change directory
+ * 			  -1-- the user wants to change directory but the adress is invalid
+ * description:
+ *
+ */
+int checkCd(char *args[]){
+	char target[] = "cd";
+
+	if (strcmp(target, args[0]) == 0){
+		char *path;		//the path user enter, may be absolute or relative
+		char *finalPath;//the final path
+		char bs = '/';
+		finalPath = (char *)malloc(200);
+
+		path = args[1];
+		if ((*path)=='/'){
+			// path is absolute
+			finalPath = path;
+		}
+		else{
+			//path is relative
+
+			char *buf = NULL;
+			size_t len = 0;
+			strcpy(finalPath, getcwd(buf, len));
+			strcat(finalPath, &bs);
+			//appends path to finalPath
+			char temp = *(path-1);
+			//*(path -1)='\0';
+			strcat(finalPath, path);
+
+		}
+
+		if (chdir(finalPath)==-1) printf("Invalid Address!");
+		else showPwd();
+		if ((*path)!='/') free(finalPath);
+		return 1;
+
+	}
+	return 0;
+}
+
+
+
 /**
  * input:
  * 		int jobNum: the # of job that the user wants to move foreground
@@ -142,6 +194,18 @@ void showJobs(char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[], int currJob){
 }
 
 /**
+ * description:
+ * 		this method prints the current working directory
+ */
+void showPwd(){
+	char *buf = NULL;
+	size_t len = 0;
+	printf("%s", getcwd(buf, len));
+	free(buf);
+	return;
+}
+
+/**
  * input:
  * 		char* args[]: the array of pointers to the words of input command
  * output:
@@ -155,10 +219,7 @@ int checkpwd(char* args[]){
 	char target[] = "pwd";
 
 	if (strcmp(target, args[0]) == 0){
-		char *buf = NULL;
-		size_t len = 0;
-		printf("%s", getcwd(buf, len));
-		free(buf);
+		showPwd();
 		return 1;
 	}
 	else return 0;
@@ -357,6 +418,7 @@ int getcmd(History *hist, JobList *jobList, char *prompt, char *args[], int *bac
 		*builtInCmd+=checkpwd(args);
 		*builtInCmd+=checkJobs(args, jobList);
 		*builtInCmd+=checkfg(args, jobList);
+		*builtInCmd+=checkCd(args);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
