@@ -26,26 +26,72 @@ typedef struct history_t{
 typedef struct joblist_t{
 	char* jobs[JOBS_ARRAY_SIZE][ARGS_ARRAY_SIZE];
 	pid_t pids[JOBS_ARRAY_SIZE];
-	int jobAmount;
+	int currJob;
 } JobList;
 
 
 
 
-int getcmd(History *hist, char *prompt, char *args[], int *background, int* builtInCmd);
+int getcmd(History *hist, JobList *jobList, char *prompt, char *args[], int *background, int* builtInCmd);
 int parseCommand(char *line, char *args[]);
 int ifBackground(char *line, int *background);
 int execCommand(char *args[], int background, JobList* jobList);
-int addJob(char* args[], pid_t pid, char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[JOBS_ARRAY_SIZE], int* jobAmount);
+int addJob(char* args[], pid_t pid, char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[JOBS_ARRAY_SIZE], int* currJob);
 int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]);
 int getHistoryIndex(char* args[]);
 int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* args[]);
 int tenpower(int i);	//this is a helper method to calculate the power of ten
 int checkExit(char *args[]);
 int checkpwd(char *args[]);
+int checkJobs(char *args[], JobList* jobList);
+void showJobs(char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[], int currJob);
 
 
 //===========================Other Built in commands==============================
+/**
+ * input:
+ * 		char *args[]: the array of pointers to the words of input command
+ * output:
+ * 		int : 1 -- the user enters jobs
+ * 			  0 -- the user doesnt't enter jobs
+ * description:
+ * 		this method checks if the user call jobs. If does, show jobs.
+ */
+int checkJobs(char *args[], JobList* jobList){
+	char target[] = "jobs";
+
+	if (strcmp(target, args[0]) == 0){
+		//show jobs
+		showJobs(jobList->jobs, jobList->pids, jobList->currJob);
+		return 1;
+	}
+	return 0;
+}
+
+/**
+ * input:
+ * 		char* jobs[][ARGS_ARRAY_SIZE]: the pointers to the jobs args.
+ * 		pid_t pids[JOBS_ARRAY_SIZE]: the pids of the jobs
+ * 		int currJob: the index of the current job
+ * description:
+ * 		this method shows the jobs
+ *
+ */
+void showJobs(char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[], int currJob){
+	int end = (currJob-1)%20;
+	int i, j;
+
+	for (i = 0; i<=end; i++){
+		printf("%d	%d	", i, pids[i]);
+		j = 0;
+		while (jobs[i][j]!=NULL){
+			printf("%s", jobs[i][j++]);
+		}
+		printf("\n");
+	}
+	return;
+}
+
 /**
  * input:
  * 		char* args[]: the array of pointers to the words of input command
@@ -58,6 +104,7 @@ int checkpwd(char *args[]);
 
 int checkpwd(char* args[]){
 	char target[] = "pwd";
+
 	if (strcmp(target, args[0]) == 0){
 		char *buf = NULL;
 		size_t len = 0;
@@ -81,6 +128,7 @@ int checkpwd(char* args[]){
  */
 int checkExit(char* args[]){
 	char target[] = "exit";
+
 	if (strcmp(target, args[0]) == 0){
 		exit(1);
 	}
@@ -223,7 +271,7 @@ int addToHistory(char* buf[][ARGS_ARRAY_SIZE], int* currCmd, char *args[]){
 		3.getcmd reads the input,parse it
 		4.getcmd loads the command to args[]
 */
-int getcmd(History *hist, char *prompt, char *args[], int *background, int* builtInCmd){
+int getcmd(History *hist, JobList *jobList, char *prompt, char *args[], int *background, int* builtInCmd){
 
 
 	size_t len = 0;		//the size in bytes of the buffer to read the line
@@ -247,6 +295,7 @@ int getcmd(History *hist, char *prompt, char *args[], int *background, int* buil
 		//built in commands
 		checkExit(args);
 		*builtInCmd+=checkpwd(args);
+		*builtInCmd+=checkJobs(args, jobList);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
@@ -339,6 +388,7 @@ int getcmd(History *hist, char *prompt, char *args[], int *background, int* buil
 	 }
 
 	 (*currJob)++;
+	 printf("Added job %d.", *currJob);
 	 return *currJob;
  }
 
@@ -370,7 +420,7 @@ int execCommand(char* args[], int background, JobList* jobList){
 		}
 		else{
 			//run in background
-			addJob(args, pid, jobList->jobs, jobList->pids, &(jobList->jobAmount));
+			addJob(args, pid, jobList->jobs, jobList->pids, &(jobList->currJob));
 		}
 
 	}
@@ -388,7 +438,7 @@ int main(void){
 	while(1){		//while 1 loop
 		bg = 0;
 		builtInCmd = 0;
-		int cnt =getcmd(hist, "\n>> ", args, &bg, &builtInCmd);
+		int cnt =getcmd(hist, jobList, "\n>> ", args, &bg, &builtInCmd);
 		if (cnt==-1) {
 			printf("no command");
 			exit(-1);
