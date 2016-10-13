@@ -54,6 +54,124 @@ int strToInt(char *str);	//this is helper method to convert str to int
 int checkCd(char *args[]);
 int checkOutRedirection(char *args[], int background, JobList* jobList);
 void redirectOutput(char* args[], int symbol, int background, JobList *jobList);
+int checkPiping(char* args[], int background, JobList *jobList);
+void cmdPiping(char* args[], int symbol, int background, JobList *jobList);
+void copyArray(char* args[], char* newArgs[], int i);
+void setUpPipe(char* cmdA[], char* cmdB[]);
+//============================Piping============================================
+/**
+ * input:
+ * 		char *args[]: the array of pointers to the words of input command
+ * output:
+ * 		int: the index of '|'
+ * 			 0 -- there is no '|'
+ * description:
+ * 		this method checks if the user want to do command piping, if does, calls command piping functions and return the index of '|'
+ */
+int checkPiping(char* args[],int background, JobList *jobList){
+	char target[] = "|";
+	int i = 0;
+
+	while(args[i] != NULL){
+		if (strcmp(target, args[i]) == 0) {
+			cmdPiping(args, i, background, jobList);
+			return i;
+		}
+		i++;
+	}
+	return 0;
+}
+
+/**
+ * description:
+ * 		this method copys args from i to newArgs
+ */
+void copyArray(char* args[], char* newArgs[], int i){
+	int j = 0;
+	while(args[i]!=NULL){
+		newArgs[j] = args[i];
+		i++;
+		j++;
+	}
+	newArgs[i] = NULL;
+	return;
+}
+
+/**
+ * input:
+ * 		char *args[]: the array of pointers to the words of input command
+ * 		int symbol: the index of the symbol '|' in args
+ * description:
+ * 		this method does the command piping.
+ */
+void cmdPiping(char* args[], int symbol, int background, JobList *jobList){
+	char* temp = args[symbol];
+	args[symbol] = NULL;
+
+	//set up commandA and commandB
+	char* cmdA[20];
+	char* cmdB[20];
+	copyArray(args, cmdA, 0);
+	copyArray(args, cmdB, symbol+1);
+
+
+	setUpPipe(cmdA, cmdB);
+
+	args[symbol] = temp;
+	return;
+}
+
+void setUpPipe(char* cmdA[], char* cmdB[]){
+	int pipefd[2];
+	pid_t pidA;
+	pid_t pidB;
+
+	if (pipe(pipefd) == -1){
+		perror("pipe");
+		exit(EXIT_FAILURE);
+	}
+
+	int stdin_copy = dup(0);
+	int stdout_copy = dup(1);
+
+	pidA = fork();
+
+	if(pidA == 0){
+		//process A
+		close(pipefd[0]);	//close read from pipe, in process A
+		//set the output of childA to the input of childB
+		dup2(pipefd[1],STDOUT_FILENO);
+		close(pipefd[1]);
+		execvp(cmdA[0], cmdA); //execvp fooks for argument in args, until it meets a null pointer
+		exit(0);
+	}
+	else{
+		//parent
+		//create process B
+		pidB = fork();
+
+		if(pidB == 0){
+			//process B
+			close(pipefd[1]);
+			//set the input of childB to the output of childA
+			dup2(pipefd[0], STDIN_FILENO);
+			close(pipefd[0]);
+			execvp(cmdB[0], cmdB);
+			exit(0);
+		}
+/**
+		int statusA;
+		int statusB;
+		waitpid(pidA, &statusA, -1);
+		waitpid(pidB, &statusB, -1);
+	**/
+		close(pipefd[1]);
+		close(pipefd[0]);
+		return;
+	}
+}
+
+
 
 
 
@@ -66,9 +184,9 @@ void redirectOutput(char* args[], int symbol, int background, JobList *jobList);
  * 		int: the index of '>'
  * 			 0 -- There is no '>'
  * description:
- * 		this method checks if the user want to redirect the output, if does, return the index of '>'.
+ * 		this method checks if the user want to redirect the output, if does, call output redirection function and return the index of '>'.
  */
-int checkOutRedirection(char *args[],int background, JobList *jobList){
+ int checkOutRedirection(char *args[],int background, JobList *jobList){
 	char target[] = ">";
 	int i = 0;
 
@@ -115,19 +233,6 @@ void redirectOutput(char* args[], int symbol, int background, JobList *jobList){
 	args[symbol] = temp;
 	return;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -501,6 +606,7 @@ int getcmd(History *hist, JobList *jobList, char *prompt, char *args[], int *bac
 
 		//this is not a buitInCmd
 		*builtInCmd+=checkOutRedirection(args, *background, jobList);
+		*builtInCmd+=checkPiping(args, *background, jobList);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
