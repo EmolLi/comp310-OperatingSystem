@@ -52,8 +52,8 @@ int checkfg(char *args[], JobList* jobList);
 int moveJobfg(int jobNum, int currJob, pid_t pids[]);
 int strToInt(char *str);	//this is helper method to convert str to int
 int checkCd(char *args[]);
-int checkOutRedirection(char *args[]);
-void redirectOutput(char* args[], int symbol);
+int checkOutRedirection(char *args[], int background, JobList* jobList);
+void redirectOutput(char* args[], int symbol, int background, JobList *jobList);
 
 
 
@@ -64,22 +64,22 @@ void redirectOutput(char* args[], int symbol);
  * 		char *args[]: the array of pointers to the words of input command
  * output:
  * 		int: the index of '>'
- * 			 -1 -- There is no '>'
+ * 			 0 -- There is no '>'
  * description:
  * 		this method checks if the user want to redirect the output, if does, return the index of '>'.
  */
-int checkOutRedirection(char *args[]){
+int checkOutRedirection(char *args[],int background, JobList *jobList){
 	char target[] = ">";
 	int i = 0;
 
 	while(args[i] != NULL){
 		if (strcmp(target, args[i]) == 0) {
-			redirectOutput(args, i);
+			redirectOutput(args, i, background, jobList);
 			return i;
 		}
 		i++;
 	}
-	return -1;
+	return 0;
 }
 
 /**
@@ -89,17 +89,30 @@ int checkOutRedirection(char *args[]){
  * description:
  * 		this method redirect the output
  */
-void redirectOutput(char* args[], int symbol){
+void redirectOutput(char* args[], int symbol, int background, JobList *jobList){
 	char* outName = args[symbol+1];
+	char* temp = args[symbol];
 
 	if (strlen(outName)<=0){
 		printf("Output name unspecified.");
 		return;
 	}
 
-	close(2);
-	int fd = open(outName, O_RDWR | O_CREAT);
-	//printf("%d", fd);
+	args[symbol] = NULL;
+
+
+	int stdout_copy = dup(1);
+	close(1);
+	//it's not sys call
+	int fd = (int)fopen(outName, "w+");
+
+	//execute
+	execCommand(args, background, jobList);
+
+	//reset
+	close(fd);
+	dup2(stdout_copy, 1);
+	args[symbol] = temp;
 	return;
 }
 
@@ -410,7 +423,7 @@ int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* 
 		printf("%s ", args[i++]);
 	}
 	//WHY print after the execution of command????Why if I put a puts here, it works???
-	puts("\n");
+	printf("\n");
 
 	//puts("HEY");
 
@@ -486,7 +499,8 @@ int getcmd(History *hist, JobList *jobList, char *prompt, char *args[], int *bac
 		*builtInCmd+=checkfg(args, jobList);
 		*builtInCmd+=checkCd(args);
 
-		checkOutRedirection(args);
+		//this is not a buitInCmd
+		*builtInCmd+=checkOutRedirection(args, *background, jobList);
 
 		histIndex = getHistoryIndex(args);
 		if (histIndex == -1){
