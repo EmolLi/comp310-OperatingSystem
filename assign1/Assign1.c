@@ -131,8 +131,6 @@ void setUpPipe(char* cmdA[], char* cmdB[]){
 		exit(EXIT_FAILURE);
 	}
 
-	int stdin_copy = dup(0);
-	int stdout_copy = dup(1);
 
 	pidA = fork();
 
@@ -157,16 +155,16 @@ void setUpPipe(char* cmdA[], char* cmdB[]){
 			dup2(pipefd[0], STDIN_FILENO);
 			close(pipefd[0]);
 			execvp(cmdB[0], cmdB);
+			puts(" ");
 			exit(0);
 		}
-/**
+
 		int statusA;
 		int statusB;
-		waitpid(pidA, &statusA, -1);
-		waitpid(pidB, &statusB, -1);
-	**/
 		close(pipefd[1]);
 		close(pipefd[0]);
+		waitpid(pidA, &statusA, 0);
+		waitpid(pidB, &statusB, 0);
 		return;
 	}
 }
@@ -221,14 +219,14 @@ void redirectOutput(char* args[], int symbol, int background, JobList *jobList){
 
 	int stdout_copy = dup(1);
 	close(1);
-	//it's not sys call
-	int fd = (int)fopen(outName, "w+");
+	FILE *fp = fopen(outName, "w+");
+
 
 	//execute
 	execCommand(args, background, jobList);
 
 	//reset
-	close(fd);
+	fclose(fp);
 	dup2(stdout_copy, 1);
 	args[symbol] = temp;
 	return;
@@ -270,7 +268,6 @@ int checkCd(char *args[]){
 			strcat(finalPath, &bs);
 			//appends path to finalPath
 			char temp = *(path-1);
-			//*(path -1)='\0';
 			strcat(finalPath, path);
 
 		}
@@ -298,7 +295,7 @@ int checkCd(char *args[]){
  * 		this method moves job #jobNum forground
  */
 int moveJobfg(int jobNum, int currJob, pid_t pids[]){
-	if (jobNum >= currJob || jobNum<currJob-20){
+	if (jobNum > currJob || jobNum<currJob-20){
 		printf("Invalid the job ID.");
 		return 0;
 	}
@@ -371,7 +368,12 @@ void showJobs(char* jobs[][ARGS_ARRAY_SIZE], pid_t pids[], int currJob){
 		j = 0;
 		while (jobs[i][j]!=NULL){
 			printf("%s", jobs[i][j++]);
+
 		}
+		int status;
+		pid_t running = waitpid(pids[i], &status,WNOHANG);
+		if (running == -1) printf("    Terminated");
+		if (running >= 0) printf("    Running");
 		printf("\n");
 	}
 	return;
@@ -512,9 +514,10 @@ int execHistoryItem(char* buf[][ARGS_ARRAY_SIZE], int* currCmd,int index, char* 
 	}
 
 	index = index % 10;
-	int i = 0;
+	int i;
 
 	//load the command to current command for execution
+	i = 0;
 	while (buf[index][i]!=NULL){
 		args[i] = buf[index][i++];
 	}
@@ -758,3 +761,6 @@ int main(void){
 	}
 
 }
+
+
+
