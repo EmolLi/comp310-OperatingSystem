@@ -3,6 +3,7 @@
 
 int fd;
 int errno;
+int printerID;
 Shared* shared_mem;
 
 int setup_shared_memory(){
@@ -27,7 +28,9 @@ int attach_shared_memory(){
 
 int init_shared_memory() {
 
-	shared_mem->nextJobID=1;
+	shared_mem->nextJobID = 1;
+	shared_mem->nextClientID = 1;
+	shared_mem->nextPrinterID = 1;
 	shared_mem->rear=NULL;
 	shared_mem->front=NULL;
 	sem_init(&(shared_mem->empty), 1, SLOTSIZE);
@@ -45,8 +48,25 @@ int init_shared_memory() {
 void take_a_job(Job** job){
 	sem_wait(&shared_mem->full);
 	sem_wait(&shared_mem->binary);
+
 	*job = Dequeue(shared_mem);
+
 	sem_post(&shared_mem->binary);
+	sem_post(&shared_mem->empty);
+}
+
+void print_a_message(Job* job){
+
+	printf("Printer %d takes job %d requested by client %d.\n", printerID, job->jobID, job->clientID);
+	printf("Printer %d starts printing %d pages.\n\n", printerID, job->pageToPrint);
+}
+
+void go_sleep(Job* job){
+	int sleep_time = (int)(job->pageToPrint * 0.5);
+	sleep(sleep_time);
+	printf("Printer %d finishes printing %d pages.\n\n", printerID, job->pageToPrint);
+	//free memory
+	free((Job*)job);
 }
 
 int main() {
@@ -57,22 +77,39 @@ int main() {
     attach_shared_memory();
 
     init_shared_memory();
+
+    printerID = shared_mem->nextPrinterID;
+    shared_mem->nextPrinterID+=1;
+    /**
     sem_getvalue(&(shared_mem->full), &sem);
 
+
+    //==========setting up test value==================
     Enqueue(3,shared_mem,1);
     sem_post(&shared_mem->full);
     sem_getvalue(&(shared_mem->full), &sem);
     Enqueue(4,shared_mem,2);
     sem_post(&shared_mem->full);
     sem_getvalue(&(shared_mem->full), &sem);
+**/
+    while(1){};
+    /**
+    while(1){
 
-    take_a_job(&job);
-    sem_getvalue(&(shared_mem->full), &sem);
-    take_a_job(&job);
-    sem_getvalue(&(shared_mem->full), &sem);
-    take_a_job(&job);
-    sem_getvalue(&(shared_mem->full), &sem);
+    	take_a_job(&job);
+    	sem_getvalue(&(shared_mem->full), &sem);
 
+
+    	print_a_message(job);
+
+    	go_sleep(job);
+    }**/
+/**
+    take_a_job(&job);
+    sem_getvalue(&(shared_mem->full), &sem);
+    take_a_job(&job);
+    sem_getvalue(&(shared_mem->full), &sem);
+	**/
 
     //free Job*
     /**
