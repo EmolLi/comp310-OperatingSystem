@@ -92,8 +92,8 @@ int main() {
     sem_post(&shared_mem->full);
     sem_getvalue(&(shared_mem->full), &sem);
 **/
-    while(1){};
-    /**
+   // while(1){};
+
     while(1){
 
     	take_a_job(&job);
@@ -103,7 +103,7 @@ int main() {
     	print_a_message(job);
 
     	go_sleep(job);
-    }**/
+    }
 /**
     take_a_job(&job);
     sem_getvalue(&(shared_mem->full), &sem);
