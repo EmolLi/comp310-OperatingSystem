@@ -28,14 +28,15 @@ int attach_shared_memory(){
 
 int init_shared_memory() {
 
-	shared_mem->nextJobID = 1;
 	shared_mem->nextClientID = 1;
 	shared_mem->nextPrinterID = 1;
-	shared_mem->rear=NULL;
-	shared_mem->front=NULL;
+	shared_mem->rear = 0;
+	shared_mem->front = 0;
+	shared_mem->capacity = SLOTSIZE;
 	sem_init(&(shared_mem->empty), 1, SLOTSIZE);
     sem_init(&(shared_mem->full),1, 0);
     sem_init(&(shared_mem->binary), 1, 1);
+
 	//sem_init(&(shared_mem->binary))
     return 0;
 }
@@ -45,33 +46,35 @@ int init_shared_memory() {
  * if there is no job in the job list, the printer will go to sleep until there is a job available
  */
 
-void take_a_job(Job** job){
+
+
+
+int take_a_job(){
 	sem_wait(&shared_mem->full);
 	sem_wait(&shared_mem->binary);
 
-	*job = Dequeue(shared_mem);
+	int pageToPrint = Dequeue(shared_mem);
 
 	sem_post(&shared_mem->binary);
 	sem_post(&shared_mem->empty);
+
+	return pageToPrint;
 }
 
-void print_a_message(Job* job){
-
-	printf("Printer %d takes job %d requested by client %d.\n", printerID, job->jobID, job->clientID);
-	printf("Printer %d starts printing %d pages.\n\n", printerID, job->pageToPrint);
+void print_a_message(int page){
+	printf("Printer %d starts printing %d pages.\n\n", printerID, page);
 }
 
-void go_sleep(Job* job){
-	int sleep_time = (int)(job->pageToPrint * 0.5);
+void go_sleep(int page){
+	int sleep_time = (int)(page * 0.5);
 	sleep(sleep_time);
-	printf("Printer %d finishes printing %d pages.\n\n", printerID, job->pageToPrint);
+	printf("Printer %d finishes printing %d pages.\n\n", printerID, page);
 	//free memory
-	free((Job*)job);
 }
+
 
 int main() {
 	int sem;
-	Job* job = (Job*)malloc(sizeof(Job));
 
     setup_shared_memory();
     attach_shared_memory();
@@ -80,20 +83,20 @@ int main() {
 
     printerID = shared_mem->nextPrinterID;
     shared_mem->nextPrinterID+=1;
-    /**
+
     sem_getvalue(&(shared_mem->full), &sem);
 
 
     //==========setting up test value==================
-    Enqueue(3,shared_mem,1);
+    Enqueue(3,shared_mem);
     sem_post(&shared_mem->full);
     sem_getvalue(&(shared_mem->full), &sem);
-    Enqueue(4,shared_mem,2);
+    Enqueue(4,shared_mem);
     sem_post(&shared_mem->full);
     sem_getvalue(&(shared_mem->full), &sem);
-**/
-   // while(1){};
 
+    //while(1){};
+/**
     while(1){
 
     	take_a_job(&job);
@@ -104,31 +107,12 @@ int main() {
 
     	go_sleep(job);
     }
-/**
-    take_a_job(&job);
+**/
+    int job1 = take_a_job();
     sem_getvalue(&(shared_mem->full), &sem);
-    take_a_job(&job);
+    int job2 = take_a_job();
     sem_getvalue(&(shared_mem->full), &sem);
-	**/
 
-    //free Job*
-    /**
-    Job* a = Dequeue(shared_mem);
-    Job* b = Dequeue(shared_mem);
-    Job* c = Dequeue(shared_mem);
-    /**
-    while (1) {
-        //sem_wait(&shared_mem->full);
-        printf("Now data is %d\n", shared_mem->data);
-        //shared_mem->data = shared_mem->data + 1;
-        //sleep(1);
-        //shared_mem->data = shared_mem->data * 2;
-        //printf("to %d\n", shared_mem->data);
-        //sem_post(&shared_mem->resource);
-        wait(&shared_mem->binary);
-
-        sleep(1);
-    }**/
 
     return 0;
 }

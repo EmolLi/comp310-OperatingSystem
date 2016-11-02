@@ -1,134 +1,97 @@
 #include "common.h"
-#include <unistd.h>
 
 int fd;
-int errno;
-int printerID;
 Shared* shared_mem;
+int clientID;
 
 int setup_shared_memory(){
-    fd = shm_open(MY_SHM, O_CREAT | O_RDWR, S_IRWXU);
+    fd = shm_open(MY_SHM, O_RDWR, S_IRWXU);
     if(fd == -1){
         printf("shm_open() failed\n");
         exit(1);
     }
-    ftruncate(fd, sizeof(Shared));
     return 0;
 }
 
 int attach_shared_memory(){
-    shared_mem = (Shared*)  mmap(NULL, sizeof(Shared), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    shared_mem = (Shared*) mmap(NULL, sizeof(Shared), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if(shared_mem == MAP_FAILED){
         printf("mmap() failed\n");
         exit(1);
     }
 
+
     return 0;
 }
 
-int init_shared_memory() {
+void setUpClient(){
+	clientID = shared_mem->nextClientID;
+	shared_mem->nextClientID += 1;
+	printf("Client %d is running now.\n", clientID);
 
-	shared_mem->nextJobID = 1;
-	shared_mem->nextClientID = 1;
-	shared_mem->nextPrinterID = 1;
-	shared_mem->rear=NULL;
-	shared_mem->front=NULL;
-	sem_init(&(shared_mem->empty), 1, SLOTSIZE);
-    sem_init(&(shared_mem->full),1, 0);
-    sem_init(&(shared_mem->binary), 1, 1);
-	//sem_init(&(shared_mem->binary))
-    return 0;
+}
+
+int get_job(){
+	//get job params
+	char str[10];
+	printf("Enter the number of pages you want to print:  ");
+	fgets(str, 10, stdin);
+	return atoi(str);
+
+}
+
+void put_a_job(int numOfPage){
+	sem_wait(&shared_mem->empty);
+	sem_wait(&shared_mem->binary);
+	Enqueue(numOfPage, shared_mem, clientID);
+	sem_post(&shared_mem->binary);
+	sem_post(&shared_mem->full);
 }
 
 /**
- * get job from the job list.
- * if there is no job in the job list, the printer will go to sleep until there is a job available
- */
-
-void take_a_job(Job** job){
-	sem_wait(&shared_mem->full);
-	sem_wait(&shared_mem->binary);
-
-	*job = Dequeue(shared_mem);
-
-	sem_post(&shared_mem->binary);
-	sem_post(&shared_mem->empty);
-}
-
-void print_a_message(Job* job){
-
-	printf("Printer %d takes job %d requested by client %d.\n", printerID, job->jobID, job->clientID);
-	printf("Printer %d starts printing %d pages.\n\n", printerID, job->pageToPrint);
-}
-
-void go_sleep(Job* job){
-	int sleep_time = (int)(job->pageToPrint * 0.5);
-	sleep(sleep_time);
-	printf("Printer %d finishes printing %d pages.\n\n", printerID, job->pageToPrint);
-	//free memory
-	free((Job*)job);
-}
+void handler(int signo){
+    int temp;
+    sem_getvalue(&shared_mem->binary, &temp);
+    if(temp != 1)
+        sem_post(&shared_mem->binary);
+    sem_getvalue(&shared_mem->resource, &temp);
+    if(temp != 1)
+        sem_post(&shared_mem->resource);
+    exit(0);
+}**/
 
 int main() {
-	int sem;
-	Job* job = (Job*)malloc(sizeof(Job));
-
+    /**
+	if(signal(SIGINT, handler) == SIG_ERR)
+        printf("Signal Handler Failure ..\n");
+    **/
     setup_shared_memory();
     attach_shared_memory();
 
-    init_shared_memory();
+    setUpClient();
 
-    printerID = shared_mem->nextPrinterID;
-    shared_mem->nextPrinterID+=1;
-    /**
-    sem_getvalue(&(shared_mem->full), &sem);
-
-
-    //==========setting up test value==================
-    Enqueue(3,shared_mem,1);
-    sem_post(&shared_mem->full);
-    sem_getvalue(&(shared_mem->full), &sem);
-    Enqueue(4,shared_mem,2);
-    sem_post(&shared_mem->full);
-    sem_getvalue(&(shared_mem->full), &sem);
-**/
-    while(1){};
-    /**
-    while(1){
-
-    	take_a_job(&job);
-    	sem_getvalue(&(shared_mem->full), &sem);
+    int numOfPage = get_job();
+    Job* a = shared_mem->front;
+    put_a_job(numOfPage);
+    a = shared_mem->front;
+//    release_shared_mem();
 
 
-    	print_a_message(job);
-
-    	go_sleep(job);
-    }**/
-/**
-    take_a_job(&job);
-    sem_getvalue(&(shared_mem->full), &sem);
-    take_a_job(&job);
-    sem_getvalue(&(shared_mem->full), &sem);
-	**/
-
-    //free Job*
-    /**
-    Job* a = Dequeue(shared_mem);
-    Job* b = Dequeue(shared_mem);
-    Job* c = Dequeue(shared_mem);
-    /**
-    while (1) {
-        //sem_wait(&shared_mem->full);
-        printf("Now data is %d\n", shared_mem->data);
-        //shared_mem->data = shared_mem->data + 1;
-        //sleep(1);
-        //shared_mem->data = shared_mem->data * 2;
-        //printf("to %d\n", shared_mem->data);
-        //sem_post(&shared_mem->resource);
-        wait(&shared_mem->binary);
-
-        sleep(1);
-    }**/
+   // while (1) {
+        //sem_wait(&shared_mem->binary);
+        //shared_mem->readcount++;
+//        if(shared_mem->readcount == 1)
+//            sem_wait(&shared_mem->resource);
+//        sem_post(&shared_mem->binary);
+//        printf("data is %d\n", shared_mem->data);
+//        sem_wait(&shared_mem->binary);
+//        shared_mem->readcount--;
+//        if(shared_mem->readcount == 0){
+//            sleep(1);
+//            sem_post(&shared_mem->resource);
+     //   }
+        //sem_post(&shared_mem->binary);
+    //}
 
     return 0;
 }

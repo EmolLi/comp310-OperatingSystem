@@ -86,7 +86,7 @@ int main() {
 
     sem_getvalue(&(shared_mem->full), &sem);
 
-
+/**
     //==========setting up test value==================
     Enqueue(3,shared_mem);
     sem_post(&shared_mem->full);
@@ -94,25 +94,22 @@ int main() {
     Enqueue(4,shared_mem);
     sem_post(&shared_mem->full);
     sem_getvalue(&(shared_mem->full), &sem);
-
+**/
     //while(1){};
-/**
+
     while(1){
 
-    	take_a_job(&job);
+    	int pageToPrint = take_a_job();
     	sem_getvalue(&(shared_mem->full), &sem);
-
-
-    	print_a_message(job);
-
-    	go_sleep(job);
+    	print_a_message(pageToPrint);
+    	go_sleep(pageToPrint);
     }
-**/
+    /**
     int job1 = take_a_job();
     sem_getvalue(&(shared_mem->full), &sem);
     int job2 = take_a_job();
     sem_getvalue(&(shared_mem->full), &sem);
-
+**/
 
     return 0;
 }
