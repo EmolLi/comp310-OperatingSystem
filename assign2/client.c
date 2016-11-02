@@ -27,6 +27,7 @@ int attach_shared_memory(){
 void setUpClient(){
 	clientID = shared_mem->nextClientID;
 	shared_mem->nextClientID += 1;
+	shared_mem->running += 1;
 	printf("Client %d is running now.\n", clientID);
 
 }
@@ -48,29 +49,41 @@ void put_a_job(int numOfPage){
 	sem_post(&shared_mem->full);
 }
 
-/**
+
 void handler(int signo){
     int temp;
     sem_getvalue(&shared_mem->binary, &temp);
     if(temp != 1)
         sem_post(&shared_mem->binary);
+    /**
     sem_getvalue(&shared_mem->resource, &temp);
     if(temp != 1)
         sem_post(&shared_mem->resource);
+        **/
     exit(0);
-}**/
+}
 /**
 void release_shared_mem(){
 	//just unmap, for last printer, also unlink
-	unmap
-	unlink
-}**/
+	shared_mem->running -= 1;
+	if(munmap(shared_mem, sizeof(Shared))!=0){
+	        printf("munmap() failed\n");
+	        exit(1);
+	    }
 
+	if (shared_mem->running == 0){
+		if(shm_unlink(MY_SHM)!=0){
+			printf("shm_unlink failed\n");
+			exit(1);
+		}
+	}
+}
+**/
 int main() {
-    /**
+
 	if(signal(SIGINT, handler) == SIG_ERR)
         printf("Signal Handler Failure ..\n");
-    **/
+
     setup_shared_memory();
     attach_shared_memory();
     Shared* shared_mem2 = shared_mem;
@@ -78,7 +91,7 @@ int main() {
 
     int numOfPage = get_job();
     put_a_job(numOfPage);
-//    release_shared_mem();
+    release_shared_mem(shared_mem);
 
 
 

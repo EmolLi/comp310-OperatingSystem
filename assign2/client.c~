@@ -43,7 +43,7 @@ int get_job(){
 void put_a_job(int numOfPage){
 	sem_wait(&shared_mem->empty);
 	sem_wait(&shared_mem->binary);
-	Enqueue(numOfPage, shared_mem, clientID);
+	Enqueue(numOfPage, shared_mem);
 	sem_post(&shared_mem->binary);
 	sem_post(&shared_mem->full);
 }
@@ -59,6 +59,12 @@ void handler(int signo){
         sem_post(&shared_mem->resource);
     exit(0);
 }**/
+/**
+void release_shared_mem(){
+	//just unmap, for last printer, also unlink
+	unmap
+	unlink
+}**/
 
 int main() {
     /**
@@ -67,31 +73,14 @@ int main() {
     **/
     setup_shared_memory();
     attach_shared_memory();
-
+    Shared* shared_mem2 = shared_mem;
     setUpClient();
 
     int numOfPage = get_job();
-    Job* a = shared_mem->front;
     put_a_job(numOfPage);
-    a = shared_mem->front;
 //    release_shared_mem();
 
 
-   // while (1) {
-        //sem_wait(&shared_mem->binary);
-        //shared_mem->readcount++;
-//        if(shared_mem->readcount == 1)
-//            sem_wait(&shared_mem->resource);
-//        sem_post(&shared_mem->binary);
-//        printf("data is %d\n", shared_mem->data);
-//        sem_wait(&shared_mem->binary);
-//        shared_mem->readcount--;
-//        if(shared_mem->readcount == 0){
-//            sleep(1);
-//            sem_post(&shared_mem->resource);
-     //   }
-        //sem_post(&shared_mem->binary);
-    //}
 
     return 0;
 }

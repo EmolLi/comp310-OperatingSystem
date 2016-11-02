@@ -26,6 +26,7 @@ typedef struct {
     int rear;
 
     int capacity;
+    int running;
     int nextClientID;
     int nextPrinterID;
 } Shared;
@@ -48,6 +49,22 @@ int Dequeue(Shared* shared_mem){
 	front = front % (shared_mem->capacity);
 	shared_mem->front = front;
 	return page;
+}
+
+void release_shared_mem(Shared* shared_mem){
+	//just unmap, for last printer, also unlink
+	shared_mem->running -= 1;
+	if(munmap(shared_mem, sizeof(Shared))!=0){
+	        printf("munmap() failed\n");
+	        exit(1);
+	    }
+
+	if (shared_mem->running == 0){
+		if(shm_unlink(MY_SHM)!=0){
+			printf("shm_unlink failed\n");
+			exit(1);
+		}
+	}
 }
 
 #endif //_INCLUDE_COMMON_H_

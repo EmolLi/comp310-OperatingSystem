@@ -33,6 +33,7 @@ int init_shared_memory() {
 	shared_mem->rear = 0;
 	shared_mem->front = 0;
 	shared_mem->capacity = SLOTSIZE;
+	shared_mem->running = 0;
 	sem_init(&(shared_mem->empty), 1, SLOTSIZE);
     sem_init(&(shared_mem->full),1, 0);
     sem_init(&(shared_mem->binary), 1, 1);
@@ -72,6 +73,12 @@ void go_sleep(int page){
 	//free memory
 }
 
+void setup_printer(){
+	printerID = shared_mem->nextPrinterID;
+	shared_mem->nextPrinterID += 1;
+	shared_mem->running += 1;
+}
+
 
 int main() {
 	int sem;
@@ -80,9 +87,8 @@ int main() {
     attach_shared_memory();
 
     init_shared_memory();
+    setup_printer();
 
-    printerID = shared_mem->nextPrinterID;
-    shared_mem->nextPrinterID+=1;
 
     sem_getvalue(&(shared_mem->full), &sem);
 
