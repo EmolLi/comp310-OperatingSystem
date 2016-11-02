@@ -17,7 +17,7 @@
 
 //queue implemented by linked list
 typedef struct{
-	int printerID;
+	//int printerID;
 	int clientID;
 	int jobID;
 	int pageToPrint;
