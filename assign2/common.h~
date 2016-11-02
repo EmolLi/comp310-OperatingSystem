@@ -17,7 +17,6 @@
 
 //queue implemented by linked list
 typedef struct{
-	int printerID;
 	int clientID;
 	int jobID;
 	int pageToPrint;
@@ -38,8 +37,6 @@ typedef struct {
 
     //int capacity;
     int nextJobID;
-    int nextClientID;
-    int nextPrinterID;
     //int data;
     //int readcount;
 } Shared;
