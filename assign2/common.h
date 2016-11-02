@@ -75,7 +75,6 @@ Job* Dequeue(Shared* shared_mem){
 	if (temp == NULL){
 		return NULL;
 	}
-	return temp;
 
 	if(shared_mem->front == shared_mem->rear){
 		shared_mem->front = NULL;

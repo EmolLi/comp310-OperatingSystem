@@ -37,16 +37,45 @@ int init_shared_memory() {
     return 0;
 }
 
-//int take_a_job(&job);
+/**
+ * get job from the job list.
+ * if there is no job in the job list, the printer will go to sleep until there is a job available
+ */
+
+void take_a_job(Job** job){
+	sem_wait(&shared_mem->full);
+	sem_wait(&shared_mem->binary);
+	*job = Dequeue(shared_mem);
+	sem_post(&shared_mem->binary);
+}
 
 int main() {
+	int sem;
+	Job* job = (Job*)malloc(sizeof(Job));
+
     setup_shared_memory();
     attach_shared_memory();
 
     init_shared_memory();
+    sem_getvalue(&(shared_mem->full), &sem);
 
     Enqueue(3,shared_mem,1);
+    sem_post(&shared_mem->full);
+    sem_getvalue(&(shared_mem->full), &sem);
     Enqueue(4,shared_mem,2);
+    sem_post(&shared_mem->full);
+    sem_getvalue(&(shared_mem->full), &sem);
+
+    take_a_job(&job);
+    sem_getvalue(&(shared_mem->full), &sem);
+    take_a_job(&job);
+    sem_getvalue(&(shared_mem->full), &sem);
+    take_a_job(&job);
+    sem_getvalue(&(shared_mem->full), &sem);
+
+
+    //free Job*
+    /**
     Job* a = Dequeue(shared_mem);
     Job* b = Dequeue(shared_mem);
     Job* c = Dequeue(shared_mem);
