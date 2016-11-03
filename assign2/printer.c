@@ -67,7 +67,7 @@ void print_a_message(int page){
 }
 
 void go_sleep(int page){
-	int sleep_time = (int)(page * 0.5);
+	int sleep_time = (int)(page * 0.2);
 	sleep(sleep_time);
 	printf("Printer %d finishes printing %d pages.\n\n", printerID, page);
 	//free memory
@@ -79,29 +79,38 @@ void setup_printer(){
 	shared_mem->running += 1;
 }
 
-
+void handler(int signo){
+    /**
+	int temp;
+    sem_getvalue(&shared_mem->binary, &temp);
+    if(temp != 1)
+        sem_post(&shared_mem->binary);
+    /**
+    sem_getvalue(&shared_mem->resource, &temp);
+    if(temp != 1)
+        sem_post(&shared_mem->resource);
+        **/
+	release_shared_mem(shared_mem);
+    exit(0);
+}
 int main() {
 	int sem;
+	if(signal(SIGINT, handler) == SIG_ERR)
+	        printf("Signal Handler Failure ..\n");
 
-    setup_shared_memory();
+	fd = shm_open(MY_SHM, O_RDWR, S_IRWXU);
+    if (fd == -1) setup_shared_memory();
     attach_shared_memory();
+    Shared* shared2 = shared_mem;
 
-    init_shared_memory();
+    if (fd == -1) init_shared_memory();
+    //init_shared_memory();
     setup_printer();
-
+    int a;
+    sem_getvalue(&shared_mem->empty, &a);
 
     sem_getvalue(&(shared_mem->full), &sem);
 
-/**
-    //==========setting up test value==================
-    Enqueue(3,shared_mem);
-    sem_post(&shared_mem->full);
-    sem_getvalue(&(shared_mem->full), &sem);
-    Enqueue(4,shared_mem);
-    sem_post(&shared_mem->full);
-    sem_getvalue(&(shared_mem->full), &sem);
-**/
-    //while(1){};
 
     while(1){
 

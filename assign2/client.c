@@ -66,12 +66,13 @@ void handler(int signo){
 void release_shared_mem(){
 	//just unmap, for last printer, also unlink
 	shared_mem->running -= 1;
+	int running = shared_mem->running;
 	if(munmap(shared_mem, sizeof(Shared))!=0){
 	        printf("munmap() failed\n");
 	        exit(1);
 	    }
 
-	if (shared_mem->running == 0){
+	if (running == 0){
 		if(shm_unlink(MY_SHM)!=0){
 			printf("shm_unlink failed\n");
 			exit(1);
