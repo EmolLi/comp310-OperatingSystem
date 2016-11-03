@@ -101,10 +101,13 @@ int main() {
 	fd = shm_open(MY_SHM, O_RDWR, S_IRWXU);
     if (fd == -1) setup_shared_memory();
     attach_shared_memory();
+    Shared* shared2 = shared_mem;
 
     if (fd == -1) init_shared_memory();
+    //init_shared_memory();
     setup_printer();
-
+    int a;
+    sem_getvalue(&shared_mem->empty, &a);
 
     sem_getvalue(&(shared_mem->full), &sem);
 
