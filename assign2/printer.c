@@ -119,12 +119,6 @@ int main() {
     	print_a_message(pageToPrint);
     	go_sleep(pageToPrint);
     }
-    /**
-    int job1 = take_a_job();
-    sem_getvalue(&(shared_mem->full), &sem);
-    int job2 = take_a_job();
-    sem_getvalue(&(shared_mem->full), &sem);
-**/
 
     return 0;
 }

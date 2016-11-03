@@ -32,21 +32,16 @@ void setUpClient(){
 
 }
 
-int get_job(){
-	//get job params
-	char str[10];
-	printf("Enter the number of pages you want to print:  ");
-	fgets(str, 10, stdin);
-	return atoi(str);
-
-}
 
 void put_a_job(int numOfPage){
+	int a;
+	sem_getvalue(&shared_mem->empty, &a);
 	sem_wait(&shared_mem->empty);
 	sem_wait(&shared_mem->binary);
 	Enqueue(numOfPage, shared_mem);
 	sem_post(&shared_mem->binary);
 	sem_post(&shared_mem->full);
+	printf("Client %d has %d pages to print, puts request in Buffer.\n", clientID, numOfPage);
 }
 
 
@@ -62,35 +57,31 @@ void handler(int signo){
         **/
     exit(0);
 }
-/**
-void release_shared_mem(){
-	//just unmap, for last printer, also unlink
-	shared_mem->running -= 1;
-	int running = shared_mem->running;
-	if(munmap(shared_mem, sizeof(Shared))!=0){
-	        printf("munmap() failed\n");
-	        exit(1);
-	    }
 
-	if (running == 0){
-		if(shm_unlink(MY_SHM)!=0){
-			printf("shm_unlink failed\n");
-			exit(1);
-		}
-	}
-}
-**/
-int main() {
+int main(int argc, char *argv[]) {
 
 	if(signal(SIGINT, handler) == SIG_ERR)
         printf("Signal Handler Failure ..\n");
+
+	if(argc == 1){
+		printf("Argument missing. \n");
+		printf("Please enter something like: ./client 3");
+		printf("It means you want print 3 pages");
+		exit(1);
+	}
+	if(argc>2){
+		printf("Too many arguments. \n");
+		printf("Please enter something like: ./client 3");
+		printf("It means you want print 3 pages");
+		exit(1);
+	}
 
     setup_shared_memory();
     attach_shared_memory();
     Shared* shared_mem2 = shared_mem;
     setUpClient();
 
-    int numOfPage = get_job();
+    int numOfPage = atoi(argv[1]);
     put_a_job(numOfPage);
     release_shared_mem(shared_mem);
 
