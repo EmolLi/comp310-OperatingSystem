@@ -26,19 +26,18 @@ int attach_shared_memory(){
     return 0;
 }
 
-int init_shared_memory() {
+int init_shared_memory(int capacity) {
 
 	shared_mem->nextClientID = 1;
 	shared_mem->nextPrinterID = 1;
 	shared_mem->rear = 0;
 	shared_mem->front = 0;
-	shared_mem->capacity = SLOTSIZE;
+	shared_mem->capacity = capacity;
 	shared_mem->running = 0;
-	sem_init(&(shared_mem->empty), 1, SLOTSIZE);
+	sem_init(&(shared_mem->empty), 1, capacity);
     sem_init(&(shared_mem->full),1, 0);
     sem_init(&(shared_mem->binary), 1, 1);
 
-	//sem_init(&(shared_mem->binary))
     return 0;
 }
 
@@ -85,7 +84,7 @@ void handler(int signo){
     sem_getvalue(&shared_mem->binary, &temp);
     if(temp != 1)
         sem_post(&shared_mem->binary);
-    /**
+
     sem_getvalue(&shared_mem->resource, &temp);
     if(temp != 1)
         sem_post(&shared_mem->resource);
@@ -93,29 +92,40 @@ void handler(int signo){
 	release_shared_mem(shared_mem);
     exit(0);
 }
+
+int getSize(){
+	char str[10];
+    	printf("Please enter the buffer size: \n");
+    	fgets(str, 10, stdin);
+    	return atoi(str);
+}
+
 int main() {
-	int sem;
+	int first;
 	if(signal(SIGINT, handler) == SIG_ERR)
 	        printf("Signal Handler Failure ..\n");
 
 	fd = shm_open(MY_SHM, O_RDWR, S_IRWXU);
-    if (fd == -1) setup_shared_memory();
+	first = fd;
+    if (first == -1) {
+    	setup_shared_memory();
+    }
     attach_shared_memory();
     Shared* shared2 = shared_mem;
 
-    if (fd == -1) init_shared_memory();
-    //init_shared_memory();
+    if (first == -1){
+    	int capacity = getSize();
+    	init_shared_memory(capacity);
+    }
     setup_printer();
     int a;
     sem_getvalue(&shared_mem->empty, &a);
 
-    sem_getvalue(&(shared_mem->full), &sem);
 
 
     while(1){
 
     	int pageToPrint = take_a_job();
-    	sem_getvalue(&(shared_mem->full), &sem);
     	print_a_message(pageToPrint);
     	go_sleep(pageToPrint);
     }

@@ -13,7 +13,6 @@
 #include <semaphore.h>
 
 #define MY_SHM "/JIT"
-#define SLOTSIZE 20
 
 
 typedef struct {
@@ -61,7 +60,7 @@ void release_shared_mem(Shared* shared_mem){
 	        exit(1);
 	    }
 
-	if (running == 0){
+	if (running <= 0){
 		if(shm_unlink(MY_SHM)!=0){
 			printf("shm_unlink failed\n");
 			exit(1);
