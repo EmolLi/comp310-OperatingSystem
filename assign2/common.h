@@ -20,6 +20,9 @@ typedef struct {
     sem_t empty;
     sem_t full;
 
+    sem_t idUpdate;
+    
+
     int Job[1000];
     int front;
     int rear;

@@ -37,6 +37,7 @@ int init_shared_memory(int capacity) {
 	sem_init(&(shared_mem->empty), 1, capacity);
     sem_init(&(shared_mem->full),1, 0);
     sem_init(&(shared_mem->binary), 1, 1);
+    sem_init(&(shared_mem->idUpdate), 1, 1);
 
     return 0;
 }
@@ -73,9 +74,25 @@ void go_sleep(int page){
 }
 
 void setup_printer(){
+    
+    if (shared_mem->nextPrinterID == 0){
+        //shared_mem not initialized with proper value now.
+        //may happen when the user opens a second printer before he enters the buffer size for the first printer
+        printf("Buffer initialization not finished yet! \nPlease first enter the buffer size in the first printer.\n");
+        printf("Exiting.\n");
+        if(munmap(shared_mem, sizeof(Shared))!=0){
+            printf("munmap() failed\n");
+            exit(1);
+        }
+        exit(0);
+
+    }
+    sem_wait(&shared_mem->idUpdate);
 	printerID = shared_mem->nextPrinterID;
 	shared_mem->nextPrinterID += 1;
 	shared_mem->running += 1;
+    sem_post(&shared_mem->idUpdate);
+    printf("printer %d is running now.\n", printerID);
 }
 
 void handler(int signo){
@@ -94,10 +111,19 @@ void handler(int signo){
 }
 
 int getSize(){
-	char str[10];
-    	printf("Please enter the buffer size: \n");
-    	fgets(str, 10, stdin);
-    	return atoi(str);
+    int size;
+    printf("Please enter the buffer size: \n");
+
+    if (scanf("%d", &size)!= 1 || size<=0 ||size>1000){
+        printf("Invalid input!\nPlease enter an integer between 1 and 1000!\n");
+        printf("Exiting.\n");
+        if(shm_unlink(MY_SHM)!=0){
+            printf("shm_unlink failed\n");
+            exit(1);
+        }
+        exit(0);
+    }
+    return size;
 }
 
 int main() {

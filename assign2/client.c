@@ -25,9 +25,24 @@ int attach_shared_memory(){
 }
 
 void setUpClient(){
+    if (shared_mem->nextClientID == 0){
+        //shared_mem not initialized with proper value now.
+        //may happen when the user opens a client before he enters the buffer size for the first printer
+        printf("Buffer initialization not finished yet!\nPlease first enter the buffer size in the first printer.\n");
+        printf("Exiting.\n");
+        if(munmap(shared_mem, sizeof(Shared))!=0){
+            printf("munmap() failed\n");
+            exit(1);
+        }
+        exit(0);
+
+    }
+
+    sem_wait(&shared_mem->idUpdate);
 	clientID = shared_mem->nextClientID;
 	shared_mem->nextClientID += 1;
 	shared_mem->running += 1;
+    sem_post(&shared_mem->idUpdate);
 	printf("Client %d is running now.\n", clientID);
 
 }
@@ -58,6 +73,8 @@ void handler(int signo){
     exit(0);
 }
 
+
+
 int main(int argc, char *argv[]) {
 
 	if(signal(SIGINT, handler) == SIG_ERR)
@@ -82,6 +99,12 @@ int main(int argc, char *argv[]) {
     setUpClient();
 
     int numOfPage = atoi(argv[1]);
+    if (numOfPage<=0){
+        printf("Invalid input!\nPage number should be a positive integer!\n");
+        printf("Exiting\n");
+        release_shared_mem(shared_mem);
+        exit(1);
+    }
     put_a_job(numOfPage);
     release_shared_mem(shared_mem);
 
