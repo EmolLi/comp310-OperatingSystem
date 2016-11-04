@@ -34,6 +34,9 @@ typedef struct {
 } Shared;
 
 
+/**
+	put a job in the queue
+**/
 void Enqueue(int numOfpage, Shared* shared_mem){
 	(shared_mem->rear) = (shared_mem->rear)%(shared_mem->capacity);
 	int index = shared_mem->rear;
@@ -54,10 +57,19 @@ int Dequeue(Shared* shared_mem){
 }
 
 
+/**
+	release shared memory
+	if the process is not the last running process (there are other printers/ clients running), only do unmap
+	if the process is the last one, unlink
+**/
 void release_shared_mem(Shared* shared_mem){
+	
 	//just unmap, for last printer, also unlink
+	sem_wait(&shared_mem->idUpdate);
 	shared_mem->running -= 1;
 	int running = shared_mem->running;
+	sem_post(&shared_mem->idUpdate);
+
 	if(munmap(shared_mem, sizeof(Shared))!=0){
 	        printf("munmap() failed\n");
 	        exit(1);

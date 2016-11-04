@@ -6,6 +6,10 @@ int errno;
 int printerID;
 Shared* shared_mem;
 
+
+/**
+    set up shared memory
+**/
 int setup_shared_memory(){
     fd = shm_open(MY_SHM, O_CREAT | O_RDWR, S_IRWXU);
     if(fd == -1){
@@ -16,6 +20,10 @@ int setup_shared_memory(){
     return 0;
 }
 
+
+/**
+    attach shared memory
+**/
 int attach_shared_memory(){
     shared_mem = (Shared*)  mmap(NULL, sizeof(Shared), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if(shared_mem == MAP_FAILED){
@@ -26,6 +34,12 @@ int attach_shared_memory(){
     return 0;
 }
 
+
+/**
+    initialize shared memory.
+    input: 
+        int capacity: the size of buffer
+**/
 int init_shared_memory(int capacity) {
 
 	shared_mem->nextClientID = 1;
@@ -42,14 +56,14 @@ int init_shared_memory(int capacity) {
     return 0;
 }
 
+
+
+
 /**
- * get job from the job list.
+ * get first job from the job list.
  * if there is no job in the job list, the printer will go to sleep until there is a job available
+ * return t
  */
-
-
-
-
 int take_a_job(){
 	sem_wait(&shared_mem->full);
 	sem_wait(&shared_mem->binary);
@@ -62,17 +76,27 @@ int take_a_job(){
 	return pageToPrint;
 }
 
+
+
+
 void print_a_message(int page){
 	printf("Printer %d starts printing %d pages.\n\n", printerID, page);
 }
 
+
+
+
 void go_sleep(int page){
-	int sleep_time = (int)(page * 0.2);
+	int sleep_time = (int)(page);
 	sleep(sleep_time);
 	printf("Printer %d finishes printing %d pages.\n\n", printerID, page);
 	//free memory
 }
 
+
+/**
+    set up the printer ID, increment the running count
+**/
 void setup_printer(){
     
     if (shared_mem->nextPrinterID == 0){
@@ -95,21 +119,27 @@ void setup_printer(){
     printf("printer %d is running now.\n", printerID);
 }
 
+
+/**
+    handler for interruption
+**/
 void handler(int signo){
-    /**
-	int temp;
+    int temp;
     sem_getvalue(&shared_mem->binary, &temp);
+    //??
     if(temp != 1)
         sem_post(&shared_mem->binary);
-
-    sem_getvalue(&shared_mem->resource, &temp);
-    if(temp != 1)
-        sem_post(&shared_mem->resource);
-        **/
 	release_shared_mem(shared_mem);
     exit(0);
 }
 
+
+
+/**
+    Prompts the user to input buffer size, reads and returns the buffer size
+    return:
+        int: buffer size
+**/
 int getSize(){
     int size;
     printf("Please enter the buffer size: \n");
@@ -126,6 +156,10 @@ int getSize(){
     return size;
 }
 
+
+
+
+
 int main() {
 	int first;
 	if(signal(SIGINT, handler) == SIG_ERR)
@@ -137,7 +171,6 @@ int main() {
     	setup_shared_memory();
     }
     attach_shared_memory();
-    Shared* shared2 = shared_mem;
 
     if (first == -1){
     	int capacity = getSize();
@@ -155,7 +188,6 @@ int main() {
     	print_a_message(pageToPrint);
     	go_sleep(pageToPrint);
     }
-
     return 0;
 }
 

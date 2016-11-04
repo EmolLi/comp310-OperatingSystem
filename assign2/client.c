@@ -4,6 +4,10 @@ int fd;
 Shared* shared_mem;
 int clientID;
 
+
+/**
+    set up shared memory
+**/
 int setup_shared_memory(){
     fd = shm_open(MY_SHM, O_RDWR, S_IRWXU);
     if(fd == -1){
@@ -13,6 +17,9 @@ int setup_shared_memory(){
     return 0;
 }
 
+/**
+    attach shared memory
+**/
 int attach_shared_memory(){
     shared_mem = (Shared*) mmap(NULL, sizeof(Shared), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if(shared_mem == MAP_FAILED){
@@ -24,6 +31,9 @@ int attach_shared_memory(){
     return 0;
 }
 
+/**
+    set up the client ID, increment the running count
+**/
 void setUpClient(){
     if (shared_mem->nextClientID == 0){
         //shared_mem not initialized with proper value now.
@@ -48,30 +58,43 @@ void setUpClient(){
 }
 
 
-void put_a_job(int numOfPage){
-	int a;
-	sem_getvalue(&shared_mem->empty, &a);
-	sem_wait(&shared_mem->empty);
-	sem_wait(&shared_mem->binary);
-	Enqueue(numOfPage, shared_mem);
-	sem_post(&shared_mem->binary);
-	sem_post(&shared_mem->full);
-	printf("Client %d has %d pages to print, puts request in Buffer.\n", clientID, numOfPage);
-}
 
+/**
+    handler for interruption
+**/
 
 void handler(int signo){
     int temp;
     sem_getvalue(&shared_mem->binary, &temp);
     if(temp != 1)
         sem_post(&shared_mem->binary);
-    /**
-    sem_getvalue(&shared_mem->resource, &temp);
-    if(temp != 1)
-        sem_post(&shared_mem->resource);
-        **/
+    release_shared_mem(shared_mem);
     exit(0);
 }
+
+
+/**
+    put a job in the buffer
+    input:
+        int numOfPage: the number of page user wants to print
+**/
+void put_a_job(int numOfPage){
+    if(signal(SIGINT, handler) == SIG_ERR)
+        printf("Signal Handler Failure ..\n");
+
+	int a;
+	sem_getvalue(&shared_mem->empty, &a);
+	sem_wait(&shared_mem->empty);
+	sem_wait(&shared_mem->binary);
+	Enqueue(numOfPage, shared_mem);
+    printf("Client %d has %d pages to print, puts request in Buffer.\n", clientID, numOfPage);
+	sem_post(&shared_mem->binary);
+	sem_post(&shared_mem->full);
+	
+}
+
+
+
 
 
 
